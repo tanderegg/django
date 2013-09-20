@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, \
     PermissionsMixin
 
-class UserManager(BaseUserManager):
+class EmailUserManager(BaseUserManager):
 
     def _create_user(self, email, password,
                      is_staff, is_superuser, **extra_fields):
@@ -37,7 +37,7 @@ class UserManager(BaseUserManager):
         return self._create_user(email, password, True, True,
                                  **extra_fields)
 
-class AbstractUser(AbstractBaseUser, PermissionsMixin):
+class AbstractEmailUser(AbstractBaseUser, PermissionsMixin):
     """
     An abstract user model that is an alternative to the standard AbstractUser.  The 
     sole difference is that AbstractEmailUser does not have a username field, and uses 
@@ -81,7 +81,7 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
     
     date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
 
-    objects = UserManager()
+    objects = EmailUserManager()
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
@@ -143,7 +143,7 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
                 raise SiteProfileNotAvailable
         return self._profile_cache
 
-class User(AbstractUser):
+class EmailUser(AbstractEmailUser):
     """
     Users within the Django authentication system are represented by this
     model.

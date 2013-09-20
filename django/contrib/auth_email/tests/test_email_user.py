@@ -12,13 +12,13 @@ from django.forms.fields import Field
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import PermissionsMixin, Group, Permission
 
-from django.contrib.auth_email.models import User
-from django.contrib.auth_email.forms import UserCreationForm, UserChangeForm
+from django.contrib.auth_email.models import EmailUser
+from django.contrib.auth_email.forms import EmailUserCreationForm, EmailUserChangeForm
 
 from django.test import TestCase
 from django.test.utils import override_settings
 
-class ModelTestCase(TestCase):
+class EmailUserTestCase(TestCase):
     """
     Clone of contrib.auth's BasicTestCase, to ensure
     that all functionality works correctly with the new
@@ -46,10 +46,10 @@ class ModelTestCase(TestCase):
         user_permissions.contribute_to_class(PermissionsMixin, "user_permissions")
         self.User._meta.local_many_to_many = [groups, user_permissions]
 
-        super(ModelTestCase, self)._pre_setup()
+        super(EmailUserTestCase, self)._pre_setup()
 
     def _post_teardown(self):
-        super(ModelTestCase, self)._post_teardown()
+        super(EmailUserTestCase, self)._post_teardown()
 
         # Restore user m2m field
         self.User._meta.local_many_to_many = self._old_u_local_m2m
@@ -91,10 +91,10 @@ class ModelTestCase(TestCase):
 
     def test_get_user_model(self):
         "The current user model can be retrieved"
-        self.assertEqual(self.User, User)
+        self.assertEqual(self.User, EmailUser)
 
 @override_settings(USE_TZ=False, PASSWORD_HASHERS=('django.contrib.auth.hashers.SHA1PasswordHasher',))
-class UserCreationFormTest(TestCase):
+class EmailUserCreationFormTest(TestCase):
 
     fixtures = ['authtestcase.json']
 
@@ -104,7 +104,7 @@ class UserCreationFormTest(TestCase):
             'password1': 'test123',
             'password2': 'test123',
             }
-        form = UserCreationForm(data)
+        form = EmailUserCreationForm(data)
         self.assertFalse(form.is_valid())
         self.assertEqual(form["email"].errors,
                          [force_text(form.error_messages['duplicate_email'])])
@@ -116,7 +116,7 @@ class UserCreationFormTest(TestCase):
             'password1': 'test123',
             'password2': 'test',
             }
-        form = UserCreationForm(data)
+        form = EmailUserCreationForm(data)
         self.assertFalse(form.is_valid())
         self.assertEqual(form["password2"].errors,
                          [force_text(form.error_messages['password_mismatch'])])
@@ -124,14 +124,14 @@ class UserCreationFormTest(TestCase):
     def test_both_passwords(self):
         # One (or both) passwords weren't given
         data = {'email': 'jsmith@example.com'}
-        form = UserCreationForm(data)
+        form = EmailUserCreationForm(data)
         required_error = [force_text(Field.default_error_messages['required'])]
         self.assertFalse(form.is_valid())
         self.assertEqual(form['password1'].errors, required_error)
         self.assertEqual(form['password2'].errors, required_error)
 
         data['password2'] = 'test123'
-        form = UserCreationForm(data)
+        form = EmailUserCreationForm(data)
         self.assertFalse(form.is_valid())
         self.assertEqual(form['password1'].errors, required_error)
         self.assertEqual(form['password2'].errors, [])
@@ -143,13 +143,13 @@ class UserCreationFormTest(TestCase):
             'password1': 'test123',
             'password2': 'test123',
             }
-        form = UserCreationForm(data)
+        form = EmailUserCreationForm(data)
         self.assertTrue(form.is_valid())
         u = form.save()
-        self.assertEqual(repr(u), '<User: jsmith@example.com>')
+        self.assertEqual(repr(u), '<EmailUser: jsmith@example.com>')
 
 @override_settings(USE_TZ=False, PASSWORD_HASHERS=('django.contrib.auth.hashers.SHA1PasswordHasher',))
-class UserChangeFormTest(TestCase):
+class EmailUserChangeFormTest(TestCase):
 
     fixtures = ['authtestcase.json']
     User = None
@@ -162,18 +162,18 @@ class UserChangeFormTest(TestCase):
         setattr(self.User, 'objects', self.User._default_manager)
         ensure_default_manager(self.User)
 
-        super(UserChangeFormTest, self)._pre_setup()
+        super(EmailUserChangeFormTest, self)._pre_setup()
 
     def test_bug_14242(self):
         # A regression test, introduce by adding an optimization for the
         # UserChangeForm.
 
-        class MyUserForm(UserChangeForm):
+        class MyUserForm(EmailUserChangeForm):
             def __init__(self, *args, **kwargs):
                 super(MyUserForm, self).__init__(*args, **kwargs)
                 self.fields['groups'].help_text = 'These groups give users different permissions'
 
-            class Meta(UserChangeForm.Meta):
+            class Meta(EmailUserChangeForm.Meta):
                 fields = ('groups',)
 
         # Just check we can create it
@@ -183,23 +183,23 @@ class UserChangeFormTest(TestCase):
         user = self.User.objects.get(email='empty_password@example.com')
         user.set_unusable_password()
         user.save()
-        form = UserChangeForm(instance=user)
+        form = EmailUserChangeForm(instance=user)
         self.assertIn(_("No password set."), form.as_table())
 
     def test_bug_17944_empty_password(self):
         user = self.User.objects.get(email='empty_password@example.com')
-        form = UserChangeForm(instance=user)
+        form = EmailUserChangeForm(instance=user)
         self.assertIn(_("No password set."), form.as_table())
 
     def test_bug_17944_unmanageable_password(self):
         user = self.User.objects.get(email='unmanageable_password@example.com')
-        form = UserChangeForm(instance=user)
+        form = EmailUserChangeForm(instance=user)
         self.assertIn(_("Invalid password format or unknown hashing algorithm."),
             form.as_table())
 
     def test_bug_17944_unknown_password_algorithm(self):
         user = self.User.objects.get(email='unknown_password@example.com')
-        form = UserChangeForm(instance=user)
+        form = EmailUserChangeForm(instance=user)
         self.assertIn(_("Invalid password format or unknown hashing algorithm."),
             form.as_table())
 
@@ -207,7 +207,7 @@ class UserChangeFormTest(TestCase):
         "The change form does not return the password value"
         # Use the form to construct the POST data
         user = self.User.objects.get(email='testclient@example.com')
-        form_for_data = UserChangeForm(instance=user)
+        form_for_data = EmailUserChangeForm(instance=user)
         post_data = form_for_data.initial
 
         # The password field should be readonly, so anything
@@ -215,14 +215,14 @@ class UserChangeFormTest(TestCase):
         # valid, and give back the 'initial' value for the
         # password field.
         post_data['password'] = 'new password'
-        form = UserChangeForm(instance=user, data=post_data)
+        form = EmailUserChangeForm(instance=user, data=post_data)
 
         self.assertTrue(form.is_valid())
         self.assertEqual(form.cleaned_data['password'], 'sha1$6efc0$f93efe9fd7542f25a7be94871ea45aa95de57161')
 
     def test_bug_19349_bound_password_field(self):
         user = self.User.objects.get(email='testclient@example.com')
-        form = UserChangeForm(data={}, instance=user)
+        form = EmailUserChangeForm(data={}, instance=user)
         # When rendering the bound password field,
         # ReadOnlyPasswordHashWidget needs the initial
         # value to render correctly

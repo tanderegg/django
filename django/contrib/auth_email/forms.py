@@ -6,9 +6,9 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 
-from models import User
+from models import EmailUser
 
-class UserCreationForm(forms.ModelForm):
+class EmailUserCreationForm(forms.ModelForm):
     """
     A form for creating a new user, including the required
     email and password fields.
@@ -36,7 +36,7 @@ class UserCreationForm(forms.ModelForm):
     )
 
     class Meta:
-        model = User
+        model = EmailUser
         fields = ('email',)
 
     def clean_email(self):
@@ -45,8 +45,8 @@ class UserCreationForm(forms.ModelForm):
         email = self.cleaned_data["email"]
         
         try:
-            User._default_manager.get(email=email)
-        except User.DoesNotExist:
+            EmailUser._default_manager.get(email=email)
+        except EmailUser.DoesNotExist:
             return email
         raise forms.ValidationError(
             self.error_messages['duplicate_email'],
@@ -66,14 +66,14 @@ class UserCreationForm(forms.ModelForm):
 
     def save(self, commit=True):
         # Save the provided password in hashed format
-        user = super(UserCreationForm, self).save(commit=False)
+        user = super(EmailUserCreationForm, self).save(commit=False)
         user.set_password(self.cleaned_data["password1"])
         if commit:
             user.save()
 
         return user
 
-class UserChangeForm(forms.ModelForm):
+class EmailUserChangeForm(forms.ModelForm):
     """
     A form for updating users, including all fields on the user,
     but replaces the password field with admin's password hash display
@@ -90,13 +90,13 @@ class UserChangeForm(forms.ModelForm):
                     "using <a href=\"password/\">this form</a>."))
 
     class Meta:
-        model = User
+        model = EmailUser
         fields = ('email', 'password', 'first_name', 'last_name', 'is_active',
             'is_staff', 'is_superuser', 'groups', 'user_permissions', 'last_login',
             'date_joined')
 
     def __init__(self, *args, **kwargs):
-        super(UserChangeForm, self).__init__(*args, **kwargs)
+        super(EmailUserChangeForm, self).__init__(*args, **kwargs)
         f = self.fields.get('user_permissions', None)
         if f is not None:
             f.queryset = f.queryset.select_related('content_type')

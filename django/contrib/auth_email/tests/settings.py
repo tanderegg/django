@@ -32,4 +32,4 @@ INSTALLED_APPS = (
 	'django.auth_email',
 )
 
-AUTH_USER_MODEL = 'auth_email.User'
+AUTH_USER_MODEL = 'auth_email.EmailUser'

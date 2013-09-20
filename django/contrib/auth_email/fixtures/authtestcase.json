@@ -1,7 +1,7 @@
 [
     {
         "pk": "1",
-        "model": "auth_email.user",
+        "model": "auth_email.emailuser",
         "fields": {
             "email": "testclient@example.com",
             "first_name": "Test",
@@ -18,7 +18,7 @@
     },
     {
         "pk": "2",
-        "model": "auth_email.user",
+        "model": "auth_email.emailuser",
         "fields": {
             "email": "testclient2@example.com",
             "first_name": "Inactive",
@@ -35,7 +35,7 @@
     },
     {
         "pk": "3",
-        "model": "auth_email.user",
+        "model": "auth_email.emailuser",
         "fields": {
             "email": "staffmember@example.com",
             "first_name": "Staff",
@@ -52,7 +52,7 @@
     },
     {
         "pk": "4",
-        "model": "auth_email.user",
+        "model": "auth_email.emailuser",
         "fields": {
             "email": "empty_password@example.com",
             "first_name": "Empty",
@@ -69,7 +69,7 @@
     },
     {
         "pk": "5",
-        "model": "auth_email.user",
+        "model": "auth_email.emailuser",
         "fields": {
             "email": "unmanageable_password@example.com",
             "first_name": "Unmanageable",
@@ -86,7 +86,7 @@
     },
     {
         "pk": "6",
-        "model": "auth_email.user",
+        "model": "auth_email.emailuser",
         "fields": {
             "email": "unknown_password@example.com",
             "first_name": "Unknown",

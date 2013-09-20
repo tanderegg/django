@@ -3,13 +3,13 @@ from django.contrib.auth.admin import UserAdmin
 
 from django.utils.translation import ugettext, ugettext_lazy as _
 
-from models import User
-from forms import UserChangeForm, UserCreationForm
+from models import EmailUser
+from forms import EmailUserChangeForm, EmailUserCreationForm
 
 class EmailUserAdmin(UserAdmin):
     # The form to add and change user instances
-    form = UserChangeForm
-    add_form = UserCreationForm
+    form = EmailUserChangeForm
+    add_form = EmailUserCreationForm
 
     # Overrides the field lists from UserAdmin
     list_display = ('email', 'first_name', 'last_name', 'is_staff')
@@ -36,4 +36,4 @@ class EmailUserAdmin(UserAdmin):
     ordering = ('last_name', 'first_name', 'email')
 
 # Now register the emailuser admin
-admin.site.register(User, EmailUserAdmin)
+admin.site.register(EmailUser, EmailUserAdmin)
