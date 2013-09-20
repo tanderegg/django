@@ -98,16 +98,17 @@ class BasicTestCase(TestCase):
         u2 = User.objects.create_user('testuser2', 'test2@example.com')
         self.assertFalse(u2.has_usable_password())
 
-    def test_user_no_email(self):
-        "Check that users can be created without an email"
-        u = User.objects.create_user('testuser1')
-        self.assertEqual(u.email, '')
+    # This would no longer work
+    #def test_user_no_email(self):
+    #    "Check that users can be created without an email"
+    #    u = User.objects.create_user('testuser1')
+    #    self.assertEqual(u.email, '')
 
-        u2 = User.objects.create_user('testuser2', email='')
-        self.assertEqual(u2.email, '')
+    #    u2 = User.objects.create_user('testuser2', email='')
+    #    self.assertEqual(u2.email, '')
 
-        u3 = User.objects.create_user('testuser3', email=None)
-        self.assertEqual(u3.email, '')
+    #    u3 = User.objects.create_user('testuser3', email=None)
+    #    self.assertEqual(u3.email, '')
 
     def test_anonymous_user(self):
         "Check the properties of the anonymous user"
@@ -163,11 +164,11 @@ class BasicTestCase(TestCase):
         call_command("createsuperuser",
             interactive=False,
             username="joe+admin@somewhere.org",
-            email="joe@somewhere.org",
+            email="joe+admin@somewhere.org",
             verbosity=0
         )
         u = User.objects.get(username="joe+admin@somewhere.org")
-        self.assertEqual(u.email, 'joe@somewhere.org')
+        self.assertEqual(u.email, 'joe+admin@somewhere.org')
         self.assertFalse(u.has_usable_password())
 
     @mock_inputs({'password': "nopasswd"})

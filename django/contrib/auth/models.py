@@ -162,36 +162,53 @@ class BaseUserManager(models.Manager):
 
 class UserManager(BaseUserManager):
 
-    def _create_user(self, username, email, password,
-                     is_staff, is_superuser, **extra_fields):
+    def _create_user(self, is_staff, is_superuser, fields):
         """
-        Creates and saves a User with the given username, email and password.
+        Creates and saves a User.
         """
+        if not self.model.USERNAME_FIELD:
+            raise NotImplementedError("models using subclasses of BaseUserManager must identify a USERNAME_FIELD")
+
         now = timezone.now()
-        if not username:
+
+        password = None
+        if 'password' in fields:
+            password = fields['password']
+            del fields['password']
+
+        if not self.model.USERNAME_FIELD in fields or \
+            fields[self.model.USERNAME_FIELD] == '':
             raise ValueError('The given username must be set')
-        email = self.normalize_email(email)
-        user = self.model(username=username, email=email,
-                          is_staff=is_staff, is_active=True,
+
+        if 'email' in fields:
+            fields['email'] = self.normalize_email(fields['email'])
+
+        user = self.model(is_staff=is_staff, is_active=True,
                           is_superuser=is_superuser, last_login=now,
-                          date_joined=now, **extra_fields)
+                          date_joined=now, **fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
     def create_user(self, username, email=None, password=None, **extra_fields):
-        return self._create_user(username, email, password, False, False,
-                                 **extra_fields)
+        extra_fields[self.model.USERNAME_FIELD] = username
+        extra_fields['email'] = email
+        extra_fields['password'] = password
+
+        return self._create_user(False, False, extra_fields)
 
     def create_superuser(self, username, email, password, **extra_fields):
-        return self._create_user(username, email, password, True, True,
-                                 **extra_fields)
+        extra_fields[self.model.USERNAME_FIELD] = username
+        extra_fields['email'] = email
+        extra_fields['password'] = password
+        return self._create_user(True, True, extra_fields)
 
 
 @python_2_unicode_compatible
 class AbstractBaseUser(models.Model):
     password = models.CharField(_('password'), max_length=128)
     last_login = models.DateTimeField(_('last login'), default=timezone.now)
+    date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
 
     is_active = True
 
@@ -202,7 +219,10 @@ class AbstractBaseUser(models.Model):
 
     def get_username(self):
         "Return the identifying username for this User"
-        return getattr(self, self.USERNAME_FIELD)
+        if self.USERNAME_FIELD:
+            return getattr(self, self.USERNAME_FIELD)
+        else:
+            raise NotImplementedError('subclasses of AbstractBaseUser must define a USERNAME_FIELD')
 
     def __str__(self):
         return self.get_username()
@@ -281,6 +301,9 @@ class PermissionsMixin(models.Model):
     A mixin class that adds the fields and methods necessary to support
     Django's Group and Permission model using the ModelBackend.
     """
+    is_staff = models.BooleanField(_('staff status'), default=False,
+        help_text=_('Designates whether the user can log into this admin '
+                    'site.'))
     is_superuser = models.BooleanField(_('superuser status'), default=False,
         help_text=_('Designates that this user has all permissions without '
                     'explicitly assigning them.'))
@@ -350,39 +373,52 @@ class PermissionsMixin(models.Model):
 
         return _user_has_module_perms(self, app_label)
 
-
-class AbstractUser(AbstractBaseUser, PermissionsMixin):
-    """
-    An abstract base class implementing a fully featured User model with
-    admin-compliant permissions.
-
-    Username, password and email are required. Other fields are optional.
-    """
-    username = models.CharField(_('username'), max_length=30, unique=True,
-        help_text=_('Required. 30 characters or fewer. Letters, numbers and '
-                    '@/./+/-/_ characters'),
-        validators=[
-            validators.RegexValidator(re.compile('^[\w.@+-]+$'), _('Enter a valid username.'), 'invalid')
-        ])
-    first_name = models.CharField(_('first name'), max_length=30, blank=True)
-    last_name = models.CharField(_('last name'), max_length=30, blank=True)
-    email = models.EmailField(_('email address'), blank=True)
-    is_staff = models.BooleanField(_('staff status'), default=False,
-        help_text=_('Designates whether the user can log into this admin '
-                    'site.'))
-    is_active = models.BooleanField(_('active'), default=True,
-        help_text=_('Designates whether this user should be treated as '
-                    'active. Unselect this instead of deleting accounts.'))
-    date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
+class AbstractPermissionsUser(AbstractBaseUser, PermissionsMixin):
 
     objects = UserManager()
-
-    USERNAME_FIELD = 'username'
-    REQUIRED_FIELDS = ['email']
 
     class Meta:
         verbose_name = _('user')
         verbose_name_plural = _('users')
+        abstract = True
+
+class AbstractEmailUser(AbstractPermissionsUser):
+    """
+    An abstract user class that has the minimum requirements to login
+    to the admin, an email address and password along with the 
+    Permissions mixin.
+    """
+    email = models.EmailField(_('email address'), unique=True)
+    is_active = models.BooleanField(_('active'), default=True,
+        help_text=_('Designates whether this user should be treated as '
+                    'active. Unselect this instead of deleting accounts.'))
+
+    USERNAME_FIELD = 'email'
+
+    class Meta(AbstractPermissionsUser.Meta):
+        abstract = True
+
+    def get_short_name(self):
+        # Email is the only identifier for this class
+        return self.email
+
+    def get_full_name(self):
+        return self.get_short_name()
+
+    def email_user(self, subject, message, from_email=None, **kwargs):
+        """
+        Sends an email to this User.
+        """
+        send_mail(subject, message, from_email, [self.email], **kwargs)
+
+class AbstractNamedUser(AbstractEmailUser):
+    """
+    Adds a first and last name for personal identification.
+    """
+    first_name = models.CharField(_('first name'), max_length=30, blank=True)
+    last_name = models.CharField(_('last name'), max_length=30, blank=True)
+
+    class Meta(AbstractEmailUser.Meta):
         abstract = True
 
     def get_full_name(self):
@@ -396,11 +432,25 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
         "Returns the short name for the user."
         return self.first_name
 
-    def email_user(self, subject, message, from_email=None, **kwargs):
-        """
-        Sends an email to this User.
-        """
-        send_mail(subject, message, from_email, [self.email], **kwargs)
+class AbstractUser(AbstractNamedUser):
+    """
+    An abstract base class implementing a fully featured User model with
+    admin-compliant permissions.
+
+    Username, password and email are required. Other fields are optional.
+    """
+    username = models.CharField(_('username'), max_length=30, unique=True,
+        help_text=_('Required. 30 characters or fewer. Letters, numbers and '
+                    '@/./+/-/_ characters'),
+        validators=[
+            validators.RegexValidator(re.compile('^[\w.@+-]+$'), _('Enter a valid username.'), 'invalid')
+        ])
+
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email']
+
+    class Meta(AbstractNamedUser.Meta):
+        abstract = True
 
 
 class User(AbstractUser):
