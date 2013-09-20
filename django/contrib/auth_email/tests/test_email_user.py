@@ -57,7 +57,7 @@ class EmailUserTestCase(TestCase):
     def test_user(self):
         "Check that users can be created and can set their password"
 
-        u = self.User.objects.create_user('test@example.com', 'test@example.com', 'testpw')
+        u = self.User.objects.create_user('test@example.com', 'testpw')
         self.assertTrue(u.has_usable_password())
         self.assertFalse(u.check_password('bad'))
         self.assertTrue(u.check_password('testpw'))
@@ -79,12 +79,12 @@ class EmailUserTestCase(TestCase):
         self.assertFalse(u.is_superuser)
 
         # Check API-based user creation with no password
-        u2 = get_user_model().objects.create_user('test2@example.com', 'test2@example.com')
+        u2 = get_user_model().objects.create_user('test2@example.com')
         self.assertFalse(u2.has_usable_password())
 
     def test_superuser(self):
         "Check the creation and properties of a superuser"
-        superuser = self.User.objects.create_superuser('super@example.com', 'super@example.com', 'super')
+        superuser = self.User.objects.create_superuser('super@example.com', 'super')
         self.assertTrue(superuser.is_superuser)
         self.assertTrue(superuser.is_active)
         self.assertTrue(superuser.is_staff)

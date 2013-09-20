@@ -17,8 +17,5 @@ class EmailUser(AbstractNamedUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
-    class Meta(AbstractNamedUser.Meta):
-        pass
-
     def get_absolute_url(self):
         return "/users/%s/" % urlquote(self.pk)

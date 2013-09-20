@@ -162,12 +162,31 @@ class BaseUserManager(models.Manager):
 
 class UserManager(BaseUserManager):
 
-    def _create_user(self, is_staff, is_superuser, fields):
+    def _create_user(self, is_staff, is_superuser, args, fields):
         """
         Creates and saves a User.
         """
+
         if not self.model.USERNAME_FIELD:
             raise NotImplementedError("models using subclasses of BaseUserManager must identify a USERNAME_FIELD")
+
+        # fix to allow old API functionality to work
+        # first three allowed args are username, email, and password
+        # in that order, but if email is username, then only
+        # email and password are used
+        if len(args) > 0:
+            fields[self.model.USERNAME_FIELD] = args[0]
+
+        if len(args) == 2:
+            if self.model.USERNAME_FIELD == 'email':
+                fields['password'] = args[1]
+            else:
+                fields['email'] = args[1]
+        elif len(args) == 3:
+            fields['email'] = args[1]
+            fields['password'] = args[2]
+        elif len(args) > 3:
+            raise NotImplementedError("UserManager allows no more than 3 non-keyword arguments")
 
         now = timezone.now()
 
@@ -190,18 +209,11 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_user(self, username, email=None, password=None, **extra_fields):
-        extra_fields[self.model.USERNAME_FIELD] = username
-        extra_fields['email'] = email
-        extra_fields['password'] = password
+    def create_user(self, *args, **fields):
+        return self._create_user(False, False, args, fields)
 
-        return self._create_user(False, False, extra_fields)
-
-    def create_superuser(self, username, email, password, **extra_fields):
-        extra_fields[self.model.USERNAME_FIELD] = username
-        extra_fields['email'] = email
-        extra_fields['password'] = password
-        return self._create_user(True, True, extra_fields)
+    def create_superuser(self, *args, **fields):
+        return self._create_user(True, True, args, fields)
 
 
 @python_2_unicode_compatible
@@ -374,6 +386,9 @@ class PermissionsMixin(models.Model):
         return _user_has_module_perms(self, app_label)
 
 class AbstractPermissionsUser(AbstractBaseUser, PermissionsMixin):
+    is_active = models.BooleanField(_('active'), default=True,
+        help_text=_('Designates whether this user should be treated as '
+                    'active. Unselect this instead of deleting accounts.'))
 
     objects = UserManager()
 
@@ -389,9 +404,6 @@ class AbstractEmailUser(AbstractPermissionsUser):
     Permissions mixin.
     """
     email = models.EmailField(_('email address'), unique=True)
-    is_active = models.BooleanField(_('active'), default=True,
-        help_text=_('Designates whether this user should be treated as '
-                    'active. Unselect this instead of deleting accounts.'))
 
     USERNAME_FIELD = 'email'
 
