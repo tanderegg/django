@@ -92,7 +92,7 @@ class AbstractEmailUser(AbstractBaseUser, PermissionsMixin):
         abstract = True
 
     def get_absolute_url(self):
-        return "/users/%s/" % urlquote(self.email)
+        return "/users/%s/" % urlquote(self.pk)
 
     def get_full_name(self):
         """
